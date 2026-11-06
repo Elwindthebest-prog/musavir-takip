@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.musavirtakip.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,6 +32,17 @@
     "experiments": {
       "typedRoutes": false,
       "baseUrl": "/musavir-takip"
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "584e1ab3-bb61-4fe3-8f1a-52b422538bb5"
+      }
+    },
+    "owner": "muhasebe02"
   }
 }
