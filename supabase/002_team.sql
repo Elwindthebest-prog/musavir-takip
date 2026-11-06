@@ -68,14 +68,15 @@ begin
     where m.user_id = rec.user_id and rec.office_id is null;
 end $$;
 
+-- Birincil anahtar artık (büro, tür, anahtar)
+alter table public.records drop constraint if exists records_pkey;
+alter table public.records alter column office_id set not null;
+alter table public.records add constraint records_pkey primary key (office_id, kind, key);
+
 -- user_id artık "son düzenleyen" bilgisi; kullanıcı silinince kayıt silinmesin
 alter table public.records drop constraint if exists records_user_id_fkey;
 alter table public.records alter column user_id drop not null;
 alter table public.records add constraint records_user_id_fkey foreign key (user_id) references auth.users (id) on delete set null;
-
-alter table public.records alter column office_id set not null;
-alter table public.records drop constraint if exists records_pkey;
-alter table public.records add constraint records_pkey primary key (office_id, kind, key);
 
 -- ---------- Satır güvenliği ----------
 drop policy if exists "records_select_own" on public.records;
