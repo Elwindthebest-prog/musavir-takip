@@ -30,6 +30,7 @@ export default function Calendar() {
               <View style={{ flex: 1 }}>
                 <Text style={s.title}>{TASK_LABEL[type]}</Text>
                 <Muted>Son gün: {formatDate(deadline)}{done < list.length ? ` · ${daysLeftText(deadline)}` : ''}</Muted>
+                {list[0].deadlineNote ? <Muted style={{ color: C.amber }}>ⓘ {list[0].deadlineNote}</Muted> : null}
               </View>
               <Text style={{ fontSize: 18, fontWeight: '800', color: done === list.length ? C.green : C.text }}>
                 {done}/{list.length}
@@ -43,7 +44,7 @@ export default function Calendar() {
         );
       })}
       <Muted style={{ textAlign: 'center', marginTop: 8 }}>
-        Hafta sonuna denk gelen tarihler pazartesiye kaydırılır. Resmî tatiller ve uzatmalar için GİB vergi takvimini kontrol edin.
+        Hafta sonu ve resmî tatile denk gelen son günler ilk iş gününe kaydırılır. Arife (yarım gün) kaydırılmaz. GİB&apos;in ayrıca duyurduğu süre uzatmaları için GİB vergi takvimini kontrol edin.
       </Muted>
     </Screen>
   );

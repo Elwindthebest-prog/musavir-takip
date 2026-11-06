@@ -109,7 +109,7 @@ export default function Settings() {
       </Card>
 
       <Muted style={{ textAlign: 'center', marginTop: 8 }}>
-        Son tarihler varsayılan kurallara göre hesaplanır (KDV 28, Muhtasar 26, Geçici vergi 17). Resmî tatil ve süre uzatmaları için GİB vergi takvimini kontrol edin.
+        Son tarihler varsayılan kurallara göre hesaplanır (KDV 28, Muhtasar 26, Geçici vergi 17). Hafta sonu ve resmî tatiller (dini bayramlar 2027 sonuna kadar) ilk iş gününe kaydırılır; GİB süre uzatmaları için vergi takvimini kontrol edin.
       </Muted>
     </Screen>
   );

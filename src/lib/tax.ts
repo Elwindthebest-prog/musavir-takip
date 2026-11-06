@@ -1,9 +1,10 @@
+import { ShiftResult, toBusinessDay } from './holidays';
 import { Client, Task, TaskType } from './types';
 
 /**
- * Varsayılan son tarihler. Resmî tatiller hesaba katılmaz; yalnızca hafta sonuna
- * denk gelen tarih takip eden pazartesiye kaydırılır. GİB vergi takvimiyle
- * karşılaştırılmalıdır.
+ * Varsayılan son tarihler. Hafta sonu ve resmî tatile denk gelen son gün ilk iş
+ * gününe kaydırılır (bkz. holidays.ts). GİB'in ayrıca duyurduğu süre uzatmaları
+ * dahil değildir; GİB vergi takvimiyle karşılaştırılmalıdır.
  */
 export const TASK_LABEL: Record<TaskType, string> = {
   KDV: 'KDV',
@@ -45,11 +46,8 @@ export function periodLabel(p: string): string {
   return `${MONTHS[m - 1]} ${y}`;
 }
 
-function deadlineDate(y: number, m: number, day: number): Date {
-  const d = new Date(y, m - 1, day);
-  if (d.getDay() === 6) d.setDate(d.getDate() + 2);
-  else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
-  return d;
+function deadlineDate(y: number, m: number, day: number): ShiftResult {
+  return toBusinessDay(new Date(y, m - 1, day));
 }
 
 export function formatDate(d: Date, withDay = true): string {
@@ -79,8 +77,8 @@ export function tasksForClient(c: Client, period: string): Task[] {
   if (!c.aktif) return [];
   const { y, m } = parsePeriod(period);
   const out: Task[] = [];
-  const add = (type: TaskType, deadline: Date) =>
-    out.push({ key: `${c.id}|${type}|${period}`, clientId: c.id, type, period, deadline });
+  const add = (type: TaskType, { date, note }: ShiftResult) =>
+    out.push({ key: `${c.id}|${type}|${period}`, clientId: c.id, type, period, deadline: date, deadlineNote: note });
 
   if (c.kdv) add('KDV', deadlineDate(y, m + 1, 28));
   if (c.muhtasar === 'aylik' || (c.muhtasar === 'ucaylik' && m % 3 === 0)) {

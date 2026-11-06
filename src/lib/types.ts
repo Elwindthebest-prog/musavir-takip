@@ -27,6 +27,8 @@ export interface Task {
   type: TaskType;
   period: string;
   deadline: Date;
+  /** ör. "Resmî tatil nedeniyle kaydırıldı" */
+  deadlineNote?: string;
 }
 
 export const DOC_TYPES = [

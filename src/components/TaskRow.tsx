@@ -31,6 +31,9 @@ export function TaskRow({ task, showClient = true, last }: { task: Task; showCli
             </Text>
           ) : null}
         </Muted>
+        {task.deadlineNote && status !== 'verildi' ? (
+          <Text style={{ fontSize: 12, color: C.amber, marginTop: 2 }}>ⓘ {task.deadlineNote}</Text>
+        ) : null}
       </Pressable>
       <StatusChip
         status={status}

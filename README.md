@@ -14,7 +14,7 @@ Durum etiketine dokununca değişir: Bekliyor → Hazırlanıyor → Verildi.
 
 ## Son tarih kuralları (`src/lib/tax.ts`)
 KDV: izleyen ayın 28'i · Muhtasar ve SGK: izleyen ayın 26'sı · Geçici vergi: Mart/Haziran/Eylül dönemleri, 2 ay sonra 17'si · Yıllık gelir: 31 Mart · Kurumlar: 30 Nisan.
-Hafta sonuna denk gelen tarih pazartesiye kaydırılır; **resmî tatiller ve süre uzatmaları hesaba katılmaz**, GİB vergi takvimiyle kontrol edin.
+Hafta sonu ve resmî tatile denk gelen son gün ilk iş gününe kaydırılır (VUK md. 18). Tatil listesi [`src/lib/holidays.ts`](src/lib/holidays.ts): sabit tatiller her yıl, dini bayramlar **2025–2027** için girildi — sonraki yıllar Diyanet takvimi açıklanınca eklenmeli. Arife ve 28 Ekim (yarım gün) kaydırılmaz, yalnızca uyarı gösterilir. **GİB'in ayrıca duyurduğu süre uzatmaları hesaba katılmaz**, GİB vergi takvimiyle kontrol edin.
 
 ## Çalıştırma
 ```bash
