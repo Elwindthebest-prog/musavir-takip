@@ -7,11 +7,34 @@ import { Op, RecordRow } from './records';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+/** Canlı web sitesi: telefondan istenen şifre sıfırlama bağlantıları buraya açılır */
+export const LIVE_SITE_URL = 'https://elwindthebest-prog.github.io/musavir-takip/';
+
+/** Bu sayfanın kök adresi (web) — e-posta bağlantılarının döneceği yer */
+export function webBaseUrl(): string {
+  if (Platform.OS !== 'web') return LIVE_SITE_URL;
+  const base = window.location.pathname.startsWith('/musavir-takip') ? '/musavir-takip/' : '/';
+  return window.location.origin + base;
+}
+
+/**
+ * Şifre sıfırlama e-postasındaki bağlantıyla mı açıldık? (#...type=recovery)
+ * İstemci oluşturulmadan önce okunur; istemci adres satırını temizler.
+ */
+export const recoveryFromUrl =
+  Platform.OS === 'web' && typeof window !== 'undefined' && /type=recovery/.test(window.location.hash);
+
 /** .env doldurulmamışsa null → uygulama yalnızca bu cihazda çalışır */
 export const supabase: SupabaseClient | null =
   url && key
     ? createClient(url, key, {
-        auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+        auth: {
+          storage: AsyncStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          // Web'de e-posta bağlantısındaki oturum bilgisini (şifre sıfırlama) adres satırından al
+          detectSessionInUrl: Platform.OS === 'web',
+        },
       })
     : null;
 

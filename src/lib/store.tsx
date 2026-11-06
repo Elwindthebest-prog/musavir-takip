@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { applyOps, dataToRows, emptyData, enqueue, Op, rowsToData } from './records';
-import { cloudEnabled, fetchAllRows, isNetworkError, pushOp, supabase, upsertRows } from './supabase';
+import { cloudEnabled, fetchAllRows, isNetworkError, pushOp, recoveryFromUrl, supabase, upsertRows } from './supabase';
 import { defaultPeriod } from './tax';
 import { AppData, Client, DocKey, TaskStatus } from './types';
 
@@ -37,6 +37,9 @@ interface Store {
   uploadOffer: UploadOffer | null;
   syncNow: () => void;
   signOut: () => Promise<void>;
+  /** şifre sıfırlama bağlantısıyla gelindi, yeni şifre bekleniyor */
+  recovery: boolean;
+  endRecovery: () => void;
 
   data: AppData;
   period: string;
@@ -81,6 +84,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState(0);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [uploadOffer, setUploadOffer] = useState<UploadOffer | null>(null);
+  const [recovery, setRecovery] = useState(recoveryFromUrl);
 
   const dataRef = useRef(data);
   const queueRef = useRef<Op[]>([]);
@@ -102,7 +106,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       apply(s);
       setAuthChecked(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => apply(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      apply(s);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -324,13 +331,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await supabase?.auth.signOut();
   }, []);
 
+  const endRecovery = useCallback(() => setRecovery(false), []);
+
   const value = useMemo<Store>(
     () => ({
       ready: ready && authChecked, cloud: cloudEnabled, session, sync, syncError, pending, lastSync, uploadOffer,
-      syncNow, signOut, data, period, setPeriod, getClient, saveClient, deleteClient,
+      syncNow, signOut, recovery, endRecovery, data, period, setPeriod, getClient, saveClient, deleteClient,
       statusOf, setStatus, toggleDoc, toggleFee, replaceAll,
     }),
-    [ready, authChecked, session, sync, syncError, pending, lastSync, uploadOffer, syncNow, signOut, data, period,
+    [ready, authChecked, session, sync, syncError, pending, lastSync, uploadOffer, syncNow, signOut, recovery, endRecovery, data, period,
       getClient, saveClient, deleteClient, statusOf, setStatus, toggleDoc, toggleFee, replaceAll],
   );
 

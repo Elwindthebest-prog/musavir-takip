@@ -2,12 +2,14 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Login } from '@/components/Login';
+import { NewPassword } from '@/components/NewPassword';
 import { Button, C, Card, Muted, Screen } from '@/components/ui';
 import { StoreProvider, useStore } from '@/lib/store';
 
 /** Gezinme her zaman bağlı kalır; giriş/yükleniyor/yükleme sorusu üstüne katman olarak çizilir */
 function Overlay() {
-  const { ready, cloud, session, uploadOffer } = useStore();
+  const { ready, cloud, session, uploadOffer, recovery } = useStore();
+  if (recovery) return <NewPassword />;
   if (!ready) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
@@ -35,8 +37,8 @@ function Overlay() {
 }
 
 function Gate() {
-  const { ready, cloud, session, uploadOffer } = useStore();
-  const blocked = !ready || (cloud && !session) || !!uploadOffer;
+  const { ready, cloud, session, uploadOffer, recovery } = useStore();
+  const blocked = recovery || !ready || (cloud && !session) || !!uploadOffer;
   return (
     <View style={{ flex: 1 }}>
       <Nav />
