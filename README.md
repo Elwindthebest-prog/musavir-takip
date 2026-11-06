@@ -23,6 +23,16 @@ npm run web        # tarayıcıda
 npx expo start     # telefonda Expo Go ile QR okutarak
 ```
 
+## Canlı site
+https://elwindthebest-prog.github.io/musavir-takip/ (GitHub Pages, `gh-pages` dalı)
+
+Güncellemeyi yayınlamak için (Git Bash'te, proje klasöründe; `.env` dolu olmalı):
+```bash
+rm -rf dist && npx expo export -p web && cp dist/index.html dist/404.html && touch dist/.nojekyll
+cd dist && git init -q -b gh-pages && git add -A && git commit -qm "Web yayını" && git push -f https://github.com/Elwindthebest-prog/musavir-takip.git gh-pages && rm -rf .git && cd ..
+```
+`404.html` derin bağlantıların (ör. `/takvim`) çalışmasını, `.nojekyll` ise `_expo` klasörünün yayınlanmasını sağlar.
+
 ## Veri ve bulut senkronu
 - `.env` yoksa uygulama **yalnızca bu cihazda** çalışır (giriş ekranı çıkmaz).
 - `.env` doluysa **e-posta + şifre ile giriş** istenir; veriler Supabase'de tutulur, telefon ve web aynı veriyi görür.
