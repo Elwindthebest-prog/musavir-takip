@@ -1,5 +1,6 @@
 -- Müşavir Takip — Supabase şeması
 -- Supabase panelinde: SQL Editor → New query → bu dosyanın tamamını yapıştırın → Run.
+-- Ardından ekip (büro) desteği için 002_team.sql dosyasını da aynı şekilde çalıştırın.
 
 create table if not exists public.records (
   user_id    uuid        not null default auth.uid() references auth.users (id) on delete cascade,

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Platform, Share, Text, View } from 'react-native';
+import { Team } from '@/components/Team';
 import { Button, C, Card, Field, Muted, s, Screen, Title } from '@/components/ui';
 import { confirmAsk, notify } from '@/lib/actions';
 import { demoData } from '@/lib/demo';
 import { isValidData, useStore } from '@/lib/store';
 
 export default function Settings() {
-  const { data, replaceAll, cloud, session, sync, syncError, pending, lastSync, syncNow, signOut } = useStore();
+  const { data, replaceAll, cloud, session, sync, syncError, pending, lastSync, syncNow, signOut, office } = useStore();
   const [importText, setImportText] = useState('');
 
   const exportData = async () => {
@@ -49,7 +50,7 @@ export default function Settings() {
   };
 
   const wipe = async () => {
-    const ok = await confirmAsk('Tüm veriler silinsin mi?', 'Bu işlem geri alınamaz. Önce yedek almanız önerilir.', 'Sil');
+    const ok = await confirmAsk('Tüm veriler silinsin mi?', cloud ? 'Büronun tüm mükellefleri ve kayıtları, büro üyelerinin hepsi için silinir. Bu işlem geri alınamaz. Önce yedek almanız önerilir.' : 'Bu işlem geri alınamaz. Önce yedek almanız önerilir.', 'Sil');
     if (ok) replaceAll({ version: 1, clients: [], taskStatus: {}, docs: {}, fees: {} });
   };
 
@@ -84,6 +85,8 @@ export default function Settings() {
           </Card>
         </>
       )}
+
+      {cloud && session && office && <Team key={`${office.id}:${office.name}`} />}
 
       <Title>Yedekleme</Title>
       <Card>

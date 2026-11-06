@@ -3,13 +3,18 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { applyOps, dataToRows, emptyData, enqueue, Op, rowsToData } from './records';
-import { cloudEnabled, fetchAllRows, isNetworkError, pushOp, recoveryFromUrl, supabase, upsertRows } from './supabase';
+import {
+  cloudEnabled, fetchAllRows, getMyInvites, getMyOffice, IncomingInvite, isNetworkError, Office, pushOp, recoveryFromUrl,
+  supabase, upsertRows,
+} from './supabase';
 import { defaultPeriod } from './tax';
 import { AppData, Client, DocKey, TaskStatus } from './types';
 
 const LOCAL_KEY = 'musavir-takip:data:v1';
-const userDataKey = (uid: string) => `musavir-takip:user:${uid}:data`;
-const userQueueKey = (uid: string) => `musavir-takip:user:${uid}:queue`;
+// Önbellek kullanıcı + büro başına tutulur; büro değişince (davet kabulü) karışmaz
+const officeDataKey = (uid: string, oid: string) => `musavir-takip:user:${uid}:office:${oid}:data`;
+const officeQueueKey = (uid: string, oid: string) => `musavir-takip:user:${uid}:office:${oid}:queue`;
+const userOfficeKey = (uid: string) => `musavir-takip:user:${uid}:office`;
 
 export const cpKey = (clientId: string, period: string) => `${clientId}|${period}`;
 
@@ -40,6 +45,12 @@ interface Store {
   /** şifre sıfırlama bağlantısıyla gelindi, yeni şifre bekleniyor */
   recovery: boolean;
   endRecovery: () => void;
+  /** kullanıcının bürosu (ekip) */
+  office: Office | null;
+  /** kullanıcıya gelen büro davetleri */
+  invites: IncomingInvite[];
+  /** büro/davet bilgisini sunucudan yeniden al (davet kabulü, ayrılma sonrası) */
+  reloadOffice: () => Promise<void>;
 
   data: AppData;
   period: string;
@@ -85,6 +96,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [uploadOffer, setUploadOffer] = useState<UploadOffer | null>(null);
   const [recovery, setRecovery] = useState(recoveryFromUrl);
+  const [office, setOffice] = useState<Office | null>(null);
+  const [officeLoaded, setOfficeLoaded] = useState(!cloudEnabled);
+  const [invites, setInvites] = useState<IncomingInvite[]>([]);
 
   const dataRef = useRef(data);
   const queueRef = useRef<Op[]>([]);
@@ -92,14 +106,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const loadedFor = useRef<string | null>(null); // hangi depolama anahtarı yüklendi
   const uid = session?.user.id ?? null;
   const uidRef = useRef<string | null>(null);
+  const oid = office?.id ?? null;
+  const officeRef = useRef<string | null>(null);
 
-  const storageKey = cloudEnabled ? (uid ? userDataKey(uid) : null) : LOCAL_KEY;
+  const storageKey = cloudEnabled ? (uid && oid ? officeDataKey(uid, oid) : null) : LOCAL_KEY;
 
   // ---- Oturum ----
   useEffect(() => {
     if (!supabase) return;
     const apply = (s: Session | null) => {
-      uidRef.current = s?.user.id ?? null;
+      const next = s?.user.id ?? null;
+      if (next !== uidRef.current) {
+        // kullanıcı değişti: eski büro bilgisini bırak
+        officeRef.current = null;
+        setOffice(null);
+        setInvites([]);
+        setOfficeLoaded(!next);
+      }
+      uidRef.current = next;
       setSession(s);
     };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -113,9 +137,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // ---- Yerel önbelleği yükle (kullanıcı değişince yeniden) ----
+  // ---- Büro: önce önbellekten (çevrimdışı açılış), sonra sunucudan ----
+  const applyOffice = useCallback((o: Office | null) => {
+    officeRef.current = o?.id ?? null;
+    setOffice(o);
+  }, []);
+
+  const reloadOffice = useCallback(async () => {
+    const user = uidRef.current;
+    if (!supabase || !user) return;
+    try {
+      const [o, inv] = await Promise.all([getMyOffice(), getMyInvites()]);
+      if (uidRef.current !== user) return;
+      applyOffice(o);
+      setInvites(inv ?? []);
+      writeJSON(userOfficeKey(user), o);
+    } catch (e) {
+      setSync(isNetworkError(e) ? 'offline' : 'error');
+      setSyncError(String((e as Error)?.message ?? e));
+    } finally {
+      setOfficeLoaded(true);
+    }
+  }, [applyOffice]);
+
+  useEffect(() => {
+    if (!cloudEnabled || !uid) return;
+    let cancelled = false;
+    (async () => {
+      const cached = await readJSON<Office>(userOfficeKey(uid));
+      if (cancelled) return;
+      if (cached?.id) {
+        applyOffice(cached);
+        setOfficeLoaded(true);
+      }
+      await reloadOffice();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, applyOffice, reloadOffice]);
+
+  // ---- Yerel önbelleği yükle (kullanıcı/büro değişince yeniden) ----
   useEffect(() => {
     if (!authChecked) return;
+    if (cloudEnabled && uid && !officeLoaded) return; // büro bilgisi bekleniyor (ready aşağıda hesaplanır)
     if (!storageKey) {
       loadedFor.current = null;
       dataRef.current = emptyData();
@@ -129,7 +194,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setReady(false);
     (async () => {
       const cached = await readJSON<AppData>(storageKey);
-      const queue = uid ? (await readJSON<Op[]>(userQueueKey(uid))) ?? [] : [];
+      const queue = uid && oid ? (await readJSON<Op[]>(officeQueueKey(uid, oid))) ?? [] : [];
       if (cancelled) return;
       dataRef.current = isValidData(cached) ? cached : emptyData();
       queueRef.current = queue;
@@ -141,7 +206,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authChecked, storageKey, uid]);
+  }, [authChecked, storageKey, uid, oid, officeLoaded]);
 
   // ---- Yerel önbelleğe yaz ----
   useEffect(() => {
@@ -150,19 +215,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const persistQueue = useCallback(() => {
     setPending(queueRef.current.length);
-    if (uidRef.current) writeJSON(userQueueKey(uidRef.current), queueRef.current);
+    if (uidRef.current && officeRef.current) writeJSON(officeQueueKey(uidRef.current, officeRef.current), queueRef.current);
   }, []);
 
   // ---- Bulut: kuyruğu gönder ----
   const flush = useCallback(async () => {
-    const user = uidRef.current;
-    if (!user || flushing.current) return;
+    const o = officeRef.current;
+    if (!o || flushing.current) return;
     flushing.current = true;
     try {
-      while (queueRef.current.length && uidRef.current === user) {
+      while (queueRef.current.length && officeRef.current === o) {
         const op = queueRef.current[0];
         setSync('syncing');
-        await pushOp(user, op);
+        await pushOp(o, op);
         // gönderim sırasında aynı kayıt için yeni op gelmiş olabilir; yalnızca gönderileni çıkar
         if (queueRef.current[0] === op) queueRef.current = queueRef.current.slice(1);
         persistQueue();
@@ -180,12 +245,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // ---- Bulut: tüm veriyi çek, bekleyen değişiklikleri üstüne uygula ----
   const refresh = useCallback(async () => {
-    const user = uidRef.current;
-    if (!user) return;
+    const o = officeRef.current;
+    if (!o) return;
     try {
       setSync('syncing');
-      const rows = await fetchAllRows();
-      if (uidRef.current !== user) return;
+      const rows = await fetchAllRows(o);
+      if (officeRef.current !== o) return;
       const merged = applyOps(rowsToData(rows), queueRef.current);
       dataRef.current = merged;
       setData(merged);
@@ -203,12 +268,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // ---- Girişten sonra ilk eşitleme (+ cihazdaki veriyi yükleme teklifi) ----
   useEffect(() => {
-    if (!uid || !ready || loadedFor.current !== userDataKey(uid)) return;
+    if (!uid || !oid || !ready || loadedFor.current !== officeDataKey(uid, oid)) return;
     let cancelled = false;
     (async () => {
       try {
         setSync('syncing');
-        const rows = await fetchAllRows();
+        const rows = await fetchAllRows(oid);
         if (cancelled) return;
         const local = await readJSON<AppData>(LOCAL_KEY);
         if (rows.length === 0 && isValidData(local) && local.clients.length > 0 && queueRef.current.length === 0) {
@@ -218,7 +283,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               setUploadOffer(null);
               try {
                 setSync('syncing');
-                await upsertRows(uid, dataToRows(local));
+                await upsertRows(oid, dataToRows(local));
                 await AsyncStorage.removeItem(LOCAL_KEY);
                 await refresh();
               } catch (e) {
@@ -245,19 +310,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     // yalnızca kullanıcı/hazır olma değişince
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, ready]);
+  }, [oid, ready]);
 
   // ---- Canlı güncelleme + periyodik tekrar deneme ----
   useEffect(() => {
-    if (!supabase || !uid) return;
+    if (!supabase || !oid) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const debounced = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(refresh, 600);
     };
     const channel = supabase
-      .channel(`records-${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'records', filter: `user_id=eq.${uid}` }, debounced)
+      .channel(`records-${oid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'records', filter: `office_id=eq.${oid}` }, debounced)
       .subscribe();
     const retry = setInterval(() => {
       if (queueRef.current.length) flush();
@@ -271,6 +336,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (cameBack && Date.now() - lastForeground > 30000) {
         lastForeground = Date.now();
         refresh();
+        reloadOffice();
       }
     });
     return () => {
@@ -279,14 +345,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       appSub.remove();
       supabase?.removeChannel(channel);
     };
-  }, [uid, refresh, flush]);
+  }, [oid, refresh, flush, reloadOffice]);
 
 
   // ---- Değişiklik uygulama: yerelde hemen, bulutta kuyrukla ----
   const commit = useCallback((ops: Op[]) => {
     dataRef.current = applyOps(dataRef.current, ops);
     setData(dataRef.current);
-    if (uidRef.current) {
+    if (officeRef.current) {
       queueRef.current = enqueue(queueRef.current, ops);
       persistQueue();
       flush();
@@ -335,11 +401,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Store>(
     () => ({
-      ready: ready && authChecked, cloud: cloudEnabled, session, sync, syncError, pending, lastSync, uploadOffer,
-      syncNow, signOut, recovery, endRecovery, data, period, setPeriod, getClient, saveClient, deleteClient,
+      ready: ready && authChecked && (!cloudEnabled || !uid || officeLoaded), cloud: cloudEnabled, session, sync, syncError, pending, lastSync, uploadOffer,
+      syncNow, signOut, recovery, endRecovery, office, invites, reloadOffice, data, period, setPeriod, getClient, saveClient, deleteClient,
       statusOf, setStatus, toggleDoc, toggleFee, replaceAll,
     }),
-    [ready, authChecked, session, sync, syncError, pending, lastSync, uploadOffer, syncNow, signOut, recovery, endRecovery, data, period,
+    [ready, authChecked, officeLoaded, uid, session, sync, syncError, pending, lastSync, uploadOffer, syncNow, signOut, recovery, endRecovery, office, invites, reloadOffice, data, period,
       getClient, saveClient, deleteClient, statusOf, setStatus, toggleDoc, toggleFee, replaceAll],
   );
 

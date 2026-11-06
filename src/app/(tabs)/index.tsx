@@ -9,7 +9,7 @@ import { allTasks, daysLeft } from '@/lib/tax';
 import { DOC_TYPES } from '@/lib/types';
 
 export default function Dashboard() {
-  const { data, period, statusOf } = useStore();
+  const { data, period, statusOf, invites } = useStore();
   const active = useMemo(() => data.clients.filter((c) => c.aktif), [data.clients]);
 
   const tasks = useMemo(() => allTasks(active, period), [active, period]);
@@ -19,9 +19,19 @@ export default function Dashboard() {
   const unpaid = active.filter((c) => c.aylikUcret > 0 && !data.fees[cpKey(c.id, period)]);
   const unpaidSum = unpaid.reduce((a, c) => a + c.aylikUcret, 0);
 
+  const inviteBanner = invites.length > 0 ? (
+    <Pressable onPress={() => router.push('/ayarlar')}>
+      <Card style={{ borderColor: C.primary, backgroundColor: C.primarySoft }}>
+        <Text style={[s.rowTitle, { color: C.primary }]}>📨 {invites[0].office_name} bürosuna davet edildiniz</Text>
+        <Muted>Katılmak için dokunun (Ayarlar → Büro)</Muted>
+      </Card>
+    </Pressable>
+  ) : null;
+
   if (data.clients.length === 0) {
     return (
       <Screen>
+        {inviteBanner}
         <Card style={{ paddingVertical: 28 }}>
           <Text style={[s.title, { marginBottom: 8 }]}>Hoş geldiniz 👋</Text>
           <Muted style={{ fontSize: 15, marginBottom: 18 }}>
@@ -41,6 +51,7 @@ export default function Dashboard() {
 
   return (
     <Screen>
+      {inviteBanner}
       <PeriodBar />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>

@@ -49,8 +49,15 @@ cd dist && git init -q -b gh-pages && git add -A && git commit -qm "Web yayını
 
 E-posta onayı: Supabase varsayılan olarak yeni hesaplara onay e-postası gönderir. İsterseniz **Authentication → Sign In / Providers → Email → Confirm email** ayarını kapatabilirsiniz.
 
-### Veri modeli
-Tek tablo `records (user_id, kind, key, value jsonb)`. `kind`: `client`, `status`, `doc`, `fee`. Satır düzeyinde güvenlik (RLS) ile her kullanıcı yalnızca kendi kayıtlarını görür.
+### Ekip (büro)
+Veriler kullanıcıya değil **büroya** aittir; büro üyeleri aynı mükellefleri görür ve günceller.
+- Her kullanıcı tek bir büroya üyedir. İlk girişte kendisi için bir büro açılır (sahibi olur).
+- Büro sahibi **Ayarlar → Büro** bölümünden e-postayla davet eder. Davet edilen kişi **aynı e-postayla** hesap açıp (ya da giriş yapıp) aynı yerden **Katıl**'a basar. Kendi bürosunda başka kimse yoksa o büro ve verileri silinir (uyarı gösterilir).
+- Sahip üyeleri çıkarabilir, büro adını değiştirebilir. Üyeler bürodan ayrılabilir.
 
-### Henüz yok
-Büro içinde birden fazla kullanıcının aynı mükellefleri paylaşması (ekip hesabı), şifre sıfırlama ekranı.
+### Veri modeli
+- `records (office_id, kind, key, value jsonb, user_id = son düzenleyen)` — `kind`: `client`, `status`, `doc`, `fee`
+- `offices`, `office_members` (kullanıcı başına tek büro), `office_invites`
+- Satır güvenliği (RLS): yalnızca kendi bürosunun kayıtları. Büro işlemleri `security definer` fonksiyonlarla (`my_office`, `invite_member`, `accept_invite` …).
+- Yeni kurulumda SQL Editor'da sırasıyla [`supabase/schema.sql`](supabase/schema.sql) ve [`supabase/002_team.sql`](supabase/002_team.sql) çalıştırılır.
+
