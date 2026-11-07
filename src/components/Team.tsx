@@ -3,15 +3,14 @@ import { ActivityIndicator, Text, TextInput, View } from 'react-native';
 import { confirmAsk, notify } from '@/lib/actions';
 import { useStore } from '@/lib/store';
 import {
-  acceptInvite, cancelInvite, inviteMember, leaveOffice, listMembers, listOfficeInvites, officeErrorText,
+  acceptInvite, cancelInvite, inviteMember, leaveOffice, listOfficeInvites, officeErrorText,
   OfficeInvite, OfficeMember, removeMember, renameOffice,
 } from '@/lib/supabase';
 import { Badge, Button, C, Card, Muted, s, Title } from './ui';
 
 /** Ayarlar → Büro: ekip üyeleri, davetler */
 export function Team() {
-  const { office, invites, reloadOffice, session, data } = useStore();
-  const [members, setMembers] = useState<OfficeMember[]>([]);
+  const { office, invites, reloadOffice, session, data, members } = useStore();
   const [sent, setSent] = useState<OfficeInvite[]>([]);
   const [name, setName] = useState(office?.name ?? '');
   const [email, setEmail] = useState('');
@@ -22,19 +21,16 @@ export function Team() {
 
   const load = useCallback(async () => {
     if (!office) return;
-    const [m, i] = await Promise.all([listMembers(office.id), office.role === 'owner' ? listOfficeInvites(office.id) : []]);
-    setMembers(m);
+    const [, i] = await Promise.all([reloadOffice(), office.role === 'owner' ? listOfficeInvites(office.id) : []]);
     setSent(i);
-  }, [office]);
+  }, [office, reloadOffice]);
 
   useEffect(() => {
-    if (!office) return;
+    if (!office || office.role !== 'owner') return;
     let cancelled = false;
-    Promise.all([listMembers(office.id), office.role === 'owner' ? listOfficeInvites(office.id) : Promise.resolve([])])
-      .then(([m, i]) => {
-        if (cancelled) return;
-        setMembers(m);
-        setSent(i);
+    listOfficeInvites(office.id)
+      .then((i) => {
+        if (!cancelled) setSent(i);
       })
       .catch((e) => !cancelled && setError(officeErrorText(e)));
     return () => {
@@ -69,6 +65,7 @@ export function Team() {
 
   const remove = async (m: OfficeMember) => {
     if (await confirmAsk('Kişi bürodan çıkarılsın mı?', `${m.email} artık büronun mükelleflerini göremeyecek.`, 'Çıkar')) {
+      // Kişinin mükellefleri "atanmamış" görünür (sorumlu bilgisi korunur, tekrar katılırsa geri gelir)
       run(() => removeMember(m.user_id));
     }
   };

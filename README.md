@@ -54,6 +54,7 @@ Veriler kullanıcıya değil **büroya** aittir; büro üyeleri aynı mükellefl
 - Her kullanıcı tek bir büroya üyedir. İlk girişte kendisi için bir büro açılır (sahibi olur).
 - Büro sahibi **Ayarlar → Büro** bölümünden e-postayla davet eder. Davet edilen kişi **aynı e-postayla** hesap açıp (ya da giriş yapıp) aynı yerden **Katıl**'a basar. Kendi bürosunda başka kimse yoksa o büro ve verileri silinir (uyarı gösterilir).
 - Sahip üyeleri çıkarabilir, büro adını değiştirebilir. Üyeler bürodan ayrılabilir.
+- **İş atama:** büroda birden fazla kişi varsa mükellef formunda **Sorumlu** seçilir. Pano, Mükellefler ve Takvim üstündeki **Tümü / Bana atananlar** seçimiyle yalnızca size atanan işler görünür. Bürodan çıkan kişinin mükellefleri "atanmamış" görünür.
 
 ### Veri modeli
 - `records (office_id, kind, key, value jsonb, user_id = son düzenleyen)` — `kind`: `client`, `status`, `doc`, `fee`

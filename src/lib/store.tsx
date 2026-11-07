@@ -4,7 +4,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { AppState } from 'react-native';
 import { applyOps, dataToRows, emptyData, enqueue, Op, rowsToData } from './records';
 import {
-  cloudEnabled, fetchAllRows, getMyInvites, getMyOffice, IncomingInvite, isNetworkError, Office, pushOp, recoveryFromUrl,
+  cloudEnabled, fetchAllRows, getMyInvites, getMyOffice, IncomingInvite, isNetworkError, listMembers, Office, OfficeMember, pushOp, recoveryFromUrl,
   supabase, upsertRows,
 } from './supabase';
 import { defaultPeriod } from './tax';
@@ -15,6 +15,10 @@ const LOCAL_KEY = 'musavir-takip:data:v1';
 const officeDataKey = (uid: string, oid: string) => `musavir-takip:user:${uid}:office:${oid}:data`;
 const officeQueueKey = (uid: string, oid: string) => `musavir-takip:user:${uid}:office:${oid}:queue`;
 const userOfficeKey = (uid: string) => `musavir-takip:user:${uid}:office`;
+const officeMembersKey = (uid: string, oid: string) => `musavir-takip:user:${uid}:office:${oid}:members`;
+
+/** e-postanın @ öncesi: "ayse@buro.com" → "ayse" */
+export const shortEmail = (e: string) => e.split('@')[0] || e;
 
 export const cpKey = (clientId: string, period: string) => `${clientId}|${period}`;
 
@@ -51,6 +55,17 @@ interface Store {
   invites: IncomingInvite[];
   /** büro/davet bilgisini sunucudan yeniden al (davet kabulü, ayrılma sonrası) */
   reloadOffice: () => Promise<void>;
+  /** büro üyeleri */
+  members: OfficeMember[];
+  /** büroda birden fazla kişi var (iş atama görünür) */
+  team: boolean;
+  /** sorumlu kişinin kısa adı; atanmamış/bürodan çıkmışsa null */
+  memberLabel: (userId?: string) => string | null;
+  /** yalnızca bana atanan mükellefler gösterilsin mi */
+  mine: boolean;
+  setMine: (v: boolean) => void;
+  /** filtreye göre görünen mükellefler (Bana atananlar seçiliyse yalnızca onlar) */
+  visibleClients: Client[];
 
   data: AppData;
   period: string;
@@ -99,6 +114,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [office, setOffice] = useState<Office | null>(null);
   const [officeLoaded, setOfficeLoaded] = useState(!cloudEnabled);
   const [invites, setInvites] = useState<IncomingInvite[]>([]);
+  const [members, setMembers] = useState<OfficeMember[]>([]);
+  const [mine, setMine] = useState(false);
 
   const dataRef = useRef(data);
   const queueRef = useRef<Op[]>([]);
@@ -121,6 +138,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         officeRef.current = null;
         setOffice(null);
         setInvites([]);
+        setMembers([]);
+        setMine(false);
         setOfficeLoaded(!next);
       }
       uidRef.current = next;
@@ -152,6 +171,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applyOffice(o);
       setInvites(inv ?? []);
       writeJSON(userOfficeKey(user), o);
+      if (o?.id) {
+        const m = await listMembers(o.id);
+        if (uidRef.current !== user) return;
+        setMembers(m);
+        writeJSON(officeMembersKey(user, o.id), m);
+      }
     } catch (e) {
       setSync(isNetworkError(e) ? 'offline' : 'error');
       setSyncError(String((e as Error)?.message ?? e));
@@ -168,6 +193,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (cached?.id) {
         applyOffice(cached);
+        setMembers((await readJSON<OfficeMember[]>(officeMembersKey(uid, cached.id))) ?? []);
+        if (cancelled) return;
         setOfficeLoaded(true);
       }
       await reloadOffice();
@@ -399,13 +426,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const endRecovery = useCallback(() => setRecovery(false), []);
 
+  const team = members.length > 1;
+  const memberLabel = useCallback((userId?: string) => {
+    const m = userId ? members.find((x) => x.user_id === userId) : undefined;
+    return m ? shortEmail(m.email) : null;
+  }, [members]);
+  const onlyMine = team && mine && !!uid;
+  const visibleClients = useMemo(
+    () => (onlyMine ? data.clients.filter((c) => c.sorumlu === uid) : data.clients),
+    [onlyMine, data.clients, uid],
+  );
+
   const value = useMemo<Store>(
     () => ({
       ready: ready && authChecked && (!cloudEnabled || !uid || officeLoaded), cloud: cloudEnabled, session, sync, syncError, pending, lastSync, uploadOffer,
-      syncNow, signOut, recovery, endRecovery, office, invites, reloadOffice, data, period, setPeriod, getClient, saveClient, deleteClient,
+      syncNow, signOut, recovery, endRecovery, office, invites, reloadOffice, members, team, memberLabel, mine: onlyMine, setMine, visibleClients, data, period, setPeriod, getClient, saveClient, deleteClient,
       statusOf, setStatus, toggleDoc, toggleFee, replaceAll,
     }),
-    [ready, authChecked, officeLoaded, uid, session, sync, syncError, pending, lastSync, uploadOffer, syncNow, signOut, recovery, endRecovery, office, invites, reloadOffice, data, period,
+    [ready, authChecked, officeLoaded, uid, session, sync, syncError, pending, lastSync, uploadOffer, syncNow, signOut, recovery, endRecovery, office, invites, reloadOffice, members, team, memberLabel, onlyMine, visibleClients, data, period,
       getClient, saveClient, deleteClient, statusOf, setStatus, toggleDoc, toggleFee, replaceAll],
   );
 

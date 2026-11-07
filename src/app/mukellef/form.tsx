@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
+import { AssigneePicker } from '@/components/Assign';
 import { Button, Card, Field, Muted, Screen, Segment, Title, ToggleRow } from '@/components/ui';
 import { confirmAsk, notify } from '@/lib/actions';
 import { newId, useStore } from '@/lib/store';
@@ -13,7 +14,7 @@ const blank = (): Client => ({
 
 export default function ClientForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { getClient, saveClient, deleteClient } = useStore();
+  const { getClient, saveClient, deleteClient, team } = useStore();
   const existing = id ? getClient(id) : undefined;
   const [c, setC] = useState<Client>(existing ?? blank());
   const [ucret, setUcret] = useState(existing?.aylikUcret ? String(existing.aylikUcret) : '');
@@ -51,6 +52,7 @@ export default function ClientForm() {
         <Field label="Yetkili kişi" value={c.yetkili} onChangeText={(v) => set('yetkili', v)} />
         <Field label="Telefon" value={c.telefon} onChangeText={(v) => set('telefon', v)} keyboardType="phone-pad" placeholder="0532 123 45 67" />
         <Field label="E-posta" value={c.eposta} onChangeText={(v) => set('eposta', v.trim())} keyboardType="email-address" autoCapitalize="none" />
+        {team && <AssigneePicker value={c.sorumlu} onChange={(v) => set('sorumlu', v)} />}
       </Card>
 
       <Title>Beyannameler</Title>

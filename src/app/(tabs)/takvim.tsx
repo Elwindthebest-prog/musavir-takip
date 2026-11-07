@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
+import { MineFilter } from '@/components/Assign';
 import { TaskRow } from '@/components/TaskRow';
 import { C, Card, Empty, Muted, PeriodBar, s, Screen } from '@/components/ui';
 import { useStore } from '@/lib/store';
@@ -7,8 +8,8 @@ import { allTasks, daysLeftText, formatDate, TASK_LABEL } from '@/lib/tax';
 import { Task, TaskType } from '@/lib/types';
 
 export default function Calendar() {
-  const { data, period, statusOf } = useStore();
-  const tasks = useMemo(() => allTasks(data.clients, period), [data.clients, period]);
+  const { visibleClients, period, statusOf } = useStore();
+  const tasks = useMemo(() => allTasks(visibleClients, period), [visibleClients, period]);
 
   const groups = useMemo(() => {
     const m = new Map<TaskType, Task[]>();
@@ -18,6 +19,7 @@ export default function Calendar() {
 
   return (
     <Screen>
+      <MineFilter />
       <PeriodBar />
       {groups.length === 0 && <Empty text="Bu dönem için beyanname yok." />}
       {groups.map(([type, list]) => {

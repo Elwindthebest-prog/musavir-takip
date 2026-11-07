@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import { MineFilter } from '@/components/Assign';
 import { Badge, Button, C, Card, Empty, Muted, s, Screen } from '@/components/ui';
 import { missingDocs, useStore } from '@/lib/store';
 import { periodLabel, tasksForClient } from '@/lib/tax';
@@ -9,9 +10,9 @@ import { CLIENT_TYPE_LABEL, DOC_TYPES } from '@/lib/types';
 const norm = (t: string) => t.toLocaleLowerCase('tr');
 
 export default function Clients() {
-  const { data, period, statusOf } = useStore();
+  const { data, period, statusOf, visibleClients, team, mine, memberLabel } = useStore();
   const [q, setQ] = useState('');
-  const list = data.clients.filter((c) => {
+  const list = visibleClients.filter((c) => {
     if (!q) return true;
     const n = norm(q);
     return norm(c.unvan).includes(n) || c.vkn.includes(q) || norm(c.yetkili).includes(n);
@@ -30,12 +31,14 @@ export default function Clients() {
         <Button label="+ Ekle" onPress={() => router.push('/mukellef/form')} />
       </View>
 
+      <MineFilter />
+
       {data.clients.length > 0 && (
-        <Muted style={{ marginBottom: 8 }}>{data.clients.length} mükellef · durumlar {periodLabel(period)} dönemi için</Muted>
+        <Muted style={{ marginBottom: 8 }}>{visibleClients.length} mükellef · durumlar {periodLabel(period)} dönemi için</Muted>
       )}
 
       {list.length === 0 ? (
-        <Empty text={data.clients.length ? 'Aramaya uyan mükellef yok.' : 'Henüz mükellef eklenmedi.'} />
+        <Empty text={!data.clients.length ? 'Henüz mükellef eklenmedi.' : q ? 'Aramaya uyan mükellef yok.' : mine ? 'Size atanmış mükellef yok.' : 'Mükellef yok.'} />
       ) : (
         <Card style={{ paddingVertical: 4 }}>
           {list.map((c, i) => {
@@ -53,6 +56,7 @@ export default function Clients() {
                   <Muted>
                     {CLIENT_TYPE_LABEL[c.tur]}
                     {c.yetkili ? ` · ${c.yetkili}` : ''}
+                    {team && !mine ? ` · 👤 ${memberLabel(c.sorumlu) ?? 'atanmamış'}` : ''}
                     {!c.aktif ? ' · Pasif' : ''}
                   </Muted>
                 </View>

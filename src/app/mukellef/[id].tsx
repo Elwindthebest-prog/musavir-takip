@@ -9,7 +9,7 @@ import { CLIENT_TYPE_LABEL, DOC_TYPES } from '@/lib/types';
 
 export default function ClientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, period, getClient, toggleDoc, toggleFee } = useStore();
+  const { data, period, getClient, toggleDoc, toggleFee, team, memberLabel } = useStore();
   const c = getClient(id);
 
   if (!c) {
@@ -46,6 +46,7 @@ export default function ClientDetail() {
           {c.vkn ? ` · VKN ${c.vkn}` : ''}
           {c.yetkili ? ` · ${c.yetkili}` : ''}
         </Muted>
+        {team && <Muted style={{ marginTop: 4 }}>👤 Sorumlu: {memberLabel(c.sorumlu) ?? 'atanmamış'}</Muted>}
         {!c.aktif && <View style={{ marginTop: 8 }}><Badge text="Pasif" /></View>}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
           {!!c.telefon && <Button small kind="soft" label="📞 Ara" onPress={() => callPhone(c.telefon)} />}

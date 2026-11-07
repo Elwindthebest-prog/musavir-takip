@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { MineFilter } from '@/components/Assign';
 import { TaskRow } from '@/components/TaskRow';
 import { Badge, Button, C, Card, Empty, Muted, PeriodBar, s, Screen, Stat, Title } from '@/components/ui';
 import { formatTL } from '@/lib/actions';
@@ -9,8 +10,8 @@ import { allTasks, daysLeft } from '@/lib/tax';
 import { DOC_TYPES } from '@/lib/types';
 
 export default function Dashboard() {
-  const { data, period, statusOf, invites } = useStore();
-  const active = useMemo(() => data.clients.filter((c) => c.aktif), [data.clients]);
+  const { data, period, statusOf, invites, visibleClients, mine } = useStore();
+  const active = useMemo(() => visibleClients.filter((c) => c.aktif), [visibleClients]);
 
   const tasks = useMemo(() => allTasks(active, period), [active, period]);
   const open = tasks.filter((t) => statusOf(t.key) !== 'verildi');
@@ -52,6 +53,7 @@ export default function Dashboard() {
   return (
     <Screen>
       {inviteBanner}
+      <MineFilter />
       <PeriodBar />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
@@ -63,7 +65,7 @@ export default function Dashboard() {
 
       <Title>Yapılacaklar</Title>
       {open.length === 0 ? (
-        <Empty text={tasks.length ? 'Bu dönemin tüm beyannameleri verildi 🎉' : 'Bu dönem için beyanname yok.'} />
+        <Empty text={tasks.length ? 'Bu dönemin tüm beyannameleri verildi 🎉' : mine && active.length === 0 ? 'Size atanmış mükellef yok. Mükellef düzenleme ekranından sorumlu seçebilirsiniz.' : 'Bu dönem için beyanname yok.'} />
       ) : (
         <Card style={{ paddingVertical: 4 }}>
           {open.map((t, i) => <TaskRow key={t.key} task={t} last={i === open.length - 1} />)}

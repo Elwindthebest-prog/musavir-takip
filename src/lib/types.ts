@@ -17,6 +17,8 @@ export interface Client {
   notlar: string;
   aktif: boolean;
   createdAt: number;
+  /** sorumlu büro üyesi (user_id); boşsa atanmamış */
+  sorumlu?: string;
 }
 
 export type TaskType = 'KDV' | 'MUHSGK' | 'GECICI' | 'YILLIK_GELIR' | 'KURUMLAR';

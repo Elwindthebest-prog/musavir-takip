@@ -6,7 +6,7 @@ import { NEXT_STATUS, Task } from '@/lib/types';
 import { C, Muted, s, StatusChip } from './ui';
 
 export function TaskRow({ task, showClient = true, last }: { task: Task; showClient?: boolean; last?: boolean }) {
-  const { statusOf, setStatus, getClient } = useStore();
+  const { statusOf, setStatus, getClient, team, mine, memberLabel } = useStore();
   const status = statusOf(task.key);
   const client = getClient(task.clientId);
   const n = daysLeft(task.deadline);
@@ -25,6 +25,7 @@ export function TaskRow({ task, showClient = true, last }: { task: Task; showCli
         <Muted>
           {showClient ? `${TASK_LABEL[task.type]} · ` : ''}
           {formatDate(task.deadline)}
+          {showClient && team && !mine && memberLabel(client?.sorumlu) ? ` · 👤 ${memberLabel(client?.sorumlu)}` : ''}
           {status !== 'verildi' ? (
             <Text style={{ color: urgent ? (n < 0 ? C.red : C.amber) : C.muted, fontWeight: urgent ? '700' : '400' }}>
               {' · '}{daysLeftText(task.deadline)}
