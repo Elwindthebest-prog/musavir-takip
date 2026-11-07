@@ -5,10 +5,12 @@ import { Team } from '@/components/Team';
 import { Button, C, Card, Field, Muted, s, Screen, Title } from '@/components/ui';
 import { confirmAsk, notify } from '@/lib/actions';
 import { demoData } from '@/lib/demo';
+import { exportExcel } from '@/lib/excel';
+import { periodLabel } from '@/lib/tax';
 import { isValidData, useStore } from '@/lib/store';
 
 export default function Settings() {
-  const { data, replaceAll, cloud, session, sync, syncError, pending, lastSync, syncNow, signOut, office } = useStore();
+  const { data, replaceAll, cloud, session, sync, syncError, pending, lastSync, syncNow, signOut, office, period, statusOf, team, memberLabel } = useStore();
   const [importText, setImportText] = useState('');
 
   const exportData = async () => {
@@ -23,6 +25,15 @@ export default function Settings() {
       URL.revokeObjectURL(url);
     } else {
       await Share.share({ title: name, message: json });
+    }
+  };
+
+  const excel = async () => {
+    if (!data.clients.length) return notify('Aktarılacak mükellef yok');
+    try {
+      await exportExcel(data, period, statusOf, team ? memberLabel : null);
+    } catch (e) {
+      notify('Excel oluşturulamadı', String((e as Error)?.message ?? e));
     }
   };
 
@@ -98,7 +109,9 @@ export default function Settings() {
             ? `Veriler hesabınızda bulutta saklanıyor (${data.clients.length} mükellef). İsterseniz ayrıca dosya yedeği alabilirsiniz.`
             : `Veriler şu an yalnızca bu cihazda saklanıyor (${data.clients.length} mükellef). Düzenli yedek alın.`}
         </Muted>
-        <Button label="Yedek al" onPress={exportData} />
+        <Button label={`Excel'e aktar (${periodLabel(period)})`} onPress={excel} />
+        <Muted style={{ marginTop: 6, marginBottom: 12 }}>Dönem durumu (beyanname, belge, ücret) ve mükellef listesi. Dönemi Pano&apos;dan değiştirebilirsiniz.</Muted>
+        <Button label="Yedek al" kind="soft" onPress={exportData} />
         <Text style={[s.label, { marginTop: 18 }]}>Yedek yükle</Text>
         <Field label="" value={importText} onChangeText={setImportText} placeholder="Yedek dosyasının içeriğini buraya yapıştırın" multiline />
         <Button label="Yedeği yükle" kind="soft" onPress={importData} />

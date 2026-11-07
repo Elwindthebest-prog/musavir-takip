@@ -27,7 +27,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing"
     ],
     "scheme": "musavirtakip",
     "experiments": {

@@ -9,6 +9,7 @@ Mali müşavirler için sade mükellef takip uygulaması. Tek kod tabanı: **web
 - **Belge takibi:** satış/alış faturası, banka ekstresi; eksik belgeleri tek tuşla WhatsApp'tan isteme
 - **Ücret takibi:** aylık ücret alındı mı, WhatsApp ile hatırlatma
 - **Hatırlatma (telefon):** Ayarlar → Hatırlatmalar açılınca verilmemiş beyannameler için son günden 3 gün önce ve son gün saat 09:00'da bildirim gelir; aynı güne düşenler tek bildirimde toplanır. Ekipte yalnızca size atanan ve atanmamış mükellefler için gelir.
+- **Excel'e aktarma:** Ayarlar → Yedekleme → Excel'e aktar. Seçili dönemin durumu (beyanname, belge, ücret) ve mükellef listesi .xlsx olarak iner; telefonda paylaşım menüsü açılır.
 - **Yedekleme:** JSON yedek alma/yükleme, örnek veri
 
 Durum etiketine dokununca değişir: Bekliyor → Hazırlanıyor → Verildi.
