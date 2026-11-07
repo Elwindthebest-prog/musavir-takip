@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Login } from '@/components/Login';
 import { NewPassword } from '@/components/NewPassword';
+import { ReminderSync } from '@/components/Reminders';
 import { Button, C, Card, Muted, Screen } from '@/components/ui';
 import { StoreProvider, useStore } from '@/lib/store';
 
@@ -42,6 +43,7 @@ function Gate() {
   return (
     <View style={{ flex: 1 }}>
       <Nav />
+      <ReminderSync />
       {blocked && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: C.bg }]}>
           <Overlay />

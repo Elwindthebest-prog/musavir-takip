@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Platform, Share, Text, View } from 'react-native';
+import { ReminderSettings } from '@/components/Reminders';
 import { Team } from '@/components/Team';
 import { Button, C, Card, Field, Muted, s, Screen, Title } from '@/components/ui';
 import { confirmAsk, notify } from '@/lib/actions';
@@ -87,6 +88,8 @@ export default function Settings() {
       )}
 
       {cloud && session && office && <Team key={`${office.id}:${office.name}`} />}
+
+      <ReminderSettings />
 
       <Title>Yedekleme</Title>
       <Card>
