@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
 import { SyncBadge } from '@/components/SyncBadge';
 import { C } from '@/components/ui';
 
@@ -20,6 +20,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: C.primary,
         tabBarInactiveTintColor: C.muted,
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        // web'de güvenli alan payı yok: biraz daha yüksek, rahat dokunulan çubuk (telefonda sistem payı ekler)
+        ...(Platform.OS === 'web' ? { tabBarStyle: { height: 60, paddingTop: 4, paddingBottom: 8 } } : {}),
         headerStyle: { backgroundColor: C.card },
         headerTitleStyle: { fontWeight: '700', color: C.text },
         sceneStyle: { backgroundColor: C.bg },

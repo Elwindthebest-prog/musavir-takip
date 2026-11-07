@@ -2,7 +2,8 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { AssigneePicker } from '@/components/Assign';
-import { Button, Card, Field, Muted, Screen, Segment, Title, ToggleRow } from '@/components/ui';
+import { HeaderSave } from '@/components/HeaderSave';
+import { Button, Card, Empty, Field, Muted, Screen, Segment, Title, ToggleRow } from '@/components/ui';
 import { confirmAsk, notify } from '@/lib/actions';
 import { newId, useStore } from '@/lib/store';
 import { Client, ClientType, MuhtasarType } from '@/lib/types';
@@ -14,8 +15,23 @@ const blank = (): Client => ({
 
 export default function ClientForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { getClient, saveClient, deleteClient, team } = useStore();
+  const { getClient } = useStore();
   const existing = id ? getClient(id) : undefined;
+  // Sayfa doğrudan açılınca (web'de yenileme) veri sonradan gelir: form, mükellef bulununca yeniden kurulur.
+  // Aksi hâlde boş form açılır ve kaydetmek yeni (kopya) mükellef oluşturur.
+  if (id && !existing) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ title: 'Mükellef' }} />
+        <Empty text="Mükellef bulunamadı. Silinmiş olabilir." action={<Button label="Mükellef listesine dön" kind="soft" onPress={() => router.replace('/mukellefler')} />} />
+      </Screen>
+    );
+  }
+  return <FormInner key={existing?.id ?? 'new'} existing={existing} />;
+}
+
+function FormInner({ existing }: { existing?: Client }) {
+  const { saveClient, deleteClient, team } = useStore();
   const [c, setC] = useState<Client>(existing ?? blank());
   const [ucret, setUcret] = useState(existing?.aylikUcret ? String(existing.aylikUcret) : '');
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }));
@@ -24,7 +40,8 @@ export default function ClientForm() {
     if (!c.unvan.trim()) return notify('Ünvan gerekli', 'Lütfen mükellefin adını veya ünvanını yazın.');
     const n = Number(ucret.replace(/\./g, '').replace(',', '.')) || 0;
     saveClient({ ...c, unvan: c.unvan.trim(), aylikUcret: n });
-    if (existing) router.back();
+    // düzenlemede geri dön; geçmiş yoksa (sayfa doğrudan açıldıysa) detaya git
+    if (existing && router.canGoBack()) router.back();
     else router.replace(`/mukellef/${c.id}`);
   };
 
@@ -39,7 +56,7 @@ export default function ClientForm() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: existing ? 'Mükellefi düzenle' : 'Yeni mükellef' }} />
+      <Stack.Screen options={{ title: existing ? 'Mükellefi düzenle' : 'Yeni mükellef', headerRight: () => <HeaderSave onPress={save} /> }} />
       <Card>
         <Field label="Ünvan / Ad Soyad *" value={c.unvan} onChangeText={(v) => set('unvan', v)} placeholder="Örn. Akdeniz Gıda Ltd. Şti." />
         <Segment<ClientType>

@@ -41,7 +41,7 @@ export default function Calendar() {
             <View style={{ height: 8, backgroundColor: C.graySoft, borderRadius: 4, marginVertical: 10, overflow: 'hidden' }}>
               <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: done === list.length ? C.green : C.primary }} />
             </View>
-            {list.map((t, i) => <TaskRow key={t.key} task={t} last={i === list.length - 1} />)}
+            {list.map((t, i) => <TaskRow key={t.key} task={t} last={i === list.length - 1} compact />)}
           </Card>
         );
       })}
