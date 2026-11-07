@@ -90,6 +90,7 @@ export default function ClientDetail() {
               value={paid}
               onChange={() => toggleFee(c.id, period)}
             />
+            <Button label="Ücret geçmişi" kind="ghost" small onPress={() => router.push('/ucretler')} style={{ marginTop: 4, alignSelf: 'flex-start' }} />
             {!paid && !!c.telefon && (
               <Button label="💬 Ücret hatırlatması gönder" kind="soft" onPress={feeReminder} style={{ marginTop: 8 }} />
             )}

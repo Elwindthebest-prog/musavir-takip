@@ -66,6 +66,7 @@ function Nav() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="mukellef/[id]" options={{ title: 'Mükellef' }} />
+      <Stack.Screen name="ucretler" options={{ title: 'Ücret takibi' }} />
       <Stack.Screen name="mukellef/form" options={{ title: 'Mükellef bilgileri', presentation: 'modal' }} />
     </Stack>
   );

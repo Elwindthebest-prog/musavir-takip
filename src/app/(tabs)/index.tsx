@@ -60,7 +60,7 @@ export default function Dashboard() {
         <Stat value={`${tasks.length - open.length}/${tasks.length}`} label="Beyanname verildi" tone={open.length === 0 && tasks.length > 0 ? 'green' : 'normal'} onPress={() => router.push('/takvim')} />
         <Stat value={late.length} label="Geciken" tone={late.length ? 'red' : 'normal'} />
         <Stat value={docMissing.length} label="Belgesi eksik" tone={docMissing.length ? 'amber' : 'normal'} />
-        <Stat value={formatTL(unpaidSum)} label={`Bekleyen ücret (${unpaid.length})`} tone={unpaid.length ? 'amber' : 'normal'} />
+        <Stat value={formatTL(unpaidSum)} label={`Bekleyen ücret (${unpaid.length})`} tone={unpaid.length ? 'amber' : 'normal'} onPress={() => router.push('/ucretler')} />
       </View>
 
       <Title>Yapılacaklar</Title>
